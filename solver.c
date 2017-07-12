@@ -4,13 +4,16 @@
  * the math expression solver.
  *
  * Author : Mohamad zbib
- *
- *FIMEME:	some bug with the variable missionDone
- *			between functionS:
-					bracket, functions, power, Mul_Div_Mod
+ * 
+ * THIS SOFTWARE UNDER THE BSD LICENSE.
+ * COPYRIGHT 2017.
+ * 
+ * 
  *
  * when you use this libary you should check from your program that
  * the expression is true without any syntax error.
+ *
+ *
  *
  * NOTE:
  * 		When we find bracket used for parameter of a function we will convert it to tilts and dots
@@ -57,38 +60,65 @@ void solve(const char*data){
 		//start first with high priority first
 
 		//level one
-		while(missionDone==0){
+		do{
+		//while we still found new operation.
 			opLen=strlen(expression);
 			bracket(0,opLen-1);
-		}
-		missionDone=0;//reset the mission variable.
-
+		}while(missionDone==UPDATE);
+		missionDone=RESET;//reset the mission variable.
+		
+	
+		do{
+			Sign_Dot(0,opLen-1);
+		}while(missionDone==UPDATE);
+		missionDone=RESET;
+		
 		//level two
-		while(missionDone!=1){
+		do
+		{
 			opLen=strlen(expression);
 			functions(0,opLen-1);
-		}
-		missionDone=0;//reset the mission variable.
+		}while(missionDone==UPDATE);
+		missionDone=RESET;//reset the mission variable.
 
+
+	/*
+	 * we should skip the Sign_Dot here to show if we will include the sign under the power
+	 */
+		
 		//level three
-		while(missionDone!=1){
+		do
+		{
 			opLen=strlen(expression);
 			power(0,opLen-1);
-		}
-		missionDone=0;
+		}while(missionDone==UPDATE);
+		missionDone=RESET;
 
+		do{
+			Sign_Dot(0,opLen-1);
+		}while(missionDone==UPDATE);
+		missionDone=RESET;
+		
 		//level four
-		while(missionDone==0){
+		do
+		{
 			opLen=strlen(expression);
 			Mul_Div_Mod(0,opLen-1);
-		}
-		missionDone=0;
-		/*
-		//////////////////
-		TO BE CONTINUE....
-		//////////////////
-		*/
+		}while(missionDone==UPDATE);
+		missionDone=RESET;
 
+
+		do{
+			Sign_Dot(0,opLen-1);
+		}while(missionDone==UPDATE);
+		missionDone=RESET;		
+		//level five
+		do
+		{
+			opLen=strlen(expression);
+			Add_Sub(0,opLen-1);
+		}while(missionDone==UPDATE);
+		missionDone=RESET;
 }
 
 void bracket(int start, int end){
@@ -114,7 +144,7 @@ void bracket(int start, int end){
 	}
 
 	if(brCl==0){
-		missionDone=1;
+		missionDone=DONE;
 		return;
 	}
 	else{
@@ -132,35 +162,44 @@ void bracket(int start, int end){
 					update_expression(tmpNum,brOp,brCl,BR_TO_FX);//update and change to tilts for function.
 				else
 					update_expression(tmpNum,brOp,brCl,NULL_F);
-
-				break;
+				missionDone=UPDATE;//we still update the expression
+				return;
 			}
 			//the test of what we found!!
 			//we shold check it simple later
-			print(brOp+1,brCl-1);
 			
+		
+			Sign_Dot(0,opLen-1);
+			if(missionDone=UPDATE){
+				missionDone=RESET;
+				goto again_bracket;
+			}
+			missionDone=RESET;	
 			functions(brOp+1,brCl-1);//try the next step.
-			if(missionDone==2)
+			if(missionDone==UPDATE)
 			{
-				missionDone=0;//reset the mission variable.
-				goto again_bracket;
-			}
-			printf("end function\n");
-			power(brOp+1,brCl-1);
-			if(missionDone==2){
-				missionDone=0;//reset the mission variable.
-				goto again_bracket;
-			}
-			Mul_Div_Mod(brOp+1, brCl-1);
-			if(missionDone){
-				printf("mission done\n");
-				missionDone=0;//reset the mission variable.
+				missionDone=RESET;//reset the mission variable.
 				goto again_bracket;
 			}
 
-			/*
-			 * to be continue.
-			 */
+			power(brOp+1,brCl-1);
+			if(missionDone==UPDATE){
+				missionDone=RESET;//reset the mission variable.
+				goto again_bracket;
+			}
+			Mul_Div_Mod(brOp+1, brCl-1);
+			if(missionDone==UPDATE){
+
+				missionDone=RESET;//reset the mission variable.
+				goto again_bracket;
+			}
+
+			Add_Sub(brOp+1, brCl-1);
+			if(missionDone==UPDATE){
+
+				missionDone=RESET;//reset the mission variable.
+				goto again_bracket;
+			}
 		}
 	}
 }
@@ -182,10 +221,10 @@ void functions(int f,int l){
 			break;
 		}
 	}
-printf("op=%d\tcl=%d\n",brOp,brCl);
+
 	if(brCl==0){
-		printf("return\n");
-		missionDone=1;//send a signal to end the function
+
+		missionDone=DONE;//send a signal to end the function
 		return;
 	}
 	else{
@@ -194,7 +233,7 @@ printf("op=%d\tcl=%d\n",brOp,brCl);
 			CNumber=CloneNumber(brOp,brCl);//get the parameter of the function.
 			FName=FuncFlag(brOp);
 			Calc_and_put_result(FName,CNumber,brOp,brCl);//calculate the function result and edit the main expression.
-			missionDone=2;//the mission here achived
+			missionDone=UPDATE;//the mission here achived
 
 		}else
 		{
@@ -225,7 +264,7 @@ void power(int f,int l){
 	}
 
 	if(pr==-1){
-		missionDone=1;
+		missionDone=DONE;
 		return;
 	}
 	else{
@@ -238,10 +277,15 @@ void power(int f,int l){
 			else
 				break;
 		}
+		//check if we have a sign for a number 
+		if(expression[opS-1]=='-' || expression[opS-1]=='+')
+			if(expression[opS-2]=='-' || expression[opS-2]=='+')
+				opS--;//include the sign with the number.
+		
 		base=CloneNumber(opS,pr-1);
 
 		//find the the power number.
-		for(i=pr+1;i<l;i++){
+		for(i=pr+1;i<=l;i++){
 			if(ifNum(expression[i])==1)
 				opE=i;
 			else
@@ -251,15 +295,10 @@ void power(int f,int l){
 
 		//get the answer now.
 		answer=pow(base,powerN);
-		/*
-		 *this answer will update later to get more powerfull than the pow
-		 *that found in the math.h
-		 *because this function don't provide the double data type.
-		 */
-
+	
 		//update the expression.
 		update_expression(answer,opS,opE,NULL_F);
-		missionDone=2;
+		missionDone=UPDATE;
 	}
 }
 
@@ -268,7 +307,7 @@ void Mul_Div_Mod(int f, int l){
 	double num1=0,num2=0,result=0;//for calculation
 	int opS=-1,opE=-1;//the start and the end of the equation.
 	int len;//the length of the expression.
-	printf("enter the function\n");
+	
 	for(i=f;i<=l;i++)
 	{
 		switch(expression[i])
@@ -286,15 +325,18 @@ void Mul_Div_Mod(int f, int l){
 				Flag=MOD;
 				break;
 		}
+		if(Flag!=0)
+			break;//if we break from the stwitch we should break from the loop
+		
 	}
 
 	if(Flag==0){
-		missionDone=1;
+		missionDone=DONE;
 		return;
 	}
 
 	//find the first number
-	for(i=pos-1;i>=0;i++){
+	for(i=pos-1;i>=0;i--){
 		if(ifNum(expression[i])==1)
 			opS=i;
 		else
@@ -304,7 +346,7 @@ void Mul_Div_Mod(int f, int l){
 	num1=CloneNumber(opS,pos-1);
 
 	//find the second number
-	for(i=pos+1;i<l;i++)
+	for(i=pos+1;i<=l;i++)
 	{
 		if(ifNum(expression[i])==1)
 			opE=i;
@@ -327,6 +369,74 @@ void Mul_Div_Mod(int f, int l){
 	}
 
 	update_expression(result,opS,opE,NULL_F);
+	missionDone=UPDATE;
+}
+
+void Add_Sub(int f, int l){
+	int i,pos=-1,Flag=0;//index , position of operation and flag to specify the operation.
+	double num1=0,num2=0,result=0;//for calculation
+	int opS=-1,opE=-1;//the start and the end of the equation.
+	int len;//the length of the expression.
+	
+	
+	for(i=f+1;i<=l;i++)
+	{
+		//if we start i=f so we test the sign of the number 
+		//and this will crach the program.
+		switch(expression[i])
+		{
+			case '+':
+				pos=i;
+				Flag=ADD;
+				break;
+			case '-':
+				pos=i;
+				Flag=SUB;
+				break;
+		}
+		
+		if(Flag!=0)
+			break;//if we break from the stwitch we should break from the loop
+	}
+
+	if(Flag==0){
+		missionDone=DONE;
+		return;
+	}
+
+	//find the first number
+	for(i=pos-1;i>=0;i--){
+		if(ifNum(expression[i])==1)
+			opS=i;
+		else
+			break;
+	}
+
+	num1=CloneNumber(opS,pos-1);
+
+	//find the second number
+	for(i=pos+1;i<=l;i++)
+	{
+		if(ifNum(expression[i])==1)
+			opE=i;
+		else
+			break;
+	}
+	num2=CloneNumber(pos+1,opE);
+
+	//get the result
+	switch(Flag){
+		case ADD:
+			result=num1+num2;
+			break;
+		case SUB:
+			result=num1-num2;
+			break;
+		
+	}
+
+	update_expression(result,opS,opE,NULL_F);
+	missionDone=UPDATE;
 }
 
 int checkSimple(int f, int l){
@@ -516,6 +626,35 @@ void intToStr(int n ,char *str){
 
 }
 
+void Sign_Dot(int f,int l){
+	
+	char result[2];//to use it in strcat as a string
+	int i,pos;
+	result[0]='\0';
+	result[1]='\0';
+	for(i=f;i<l;i++)
+	{
+		if(expression[i]=='+' || expression[i]=='-')
+			if(expression[i+1]=='+' || expression[i+1]=='-'){//then we have two sign to solve it
+				//now getting the result
+				if(expression[i]==expression[i+1])
+					result[0]='+';
+				else
+					result[0]='-';
+				pos=i;
+			}
+	}
+		if(result[0]=='\0'){
+			missionDone=DONE;
+			return;
+		}
+		strncpy(temp,expression,pos);
+		temp[pos]=result[0];
+		temp[pos+1]='\0';//make sure you put the NULL terminator.
+		strcat(temp,expression+pos+2);
+		strcpy(expression,temp);
+		missionDone=UPDATE;
+}
 
 void print(int f, int l){
 	int i;
