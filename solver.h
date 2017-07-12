@@ -7,13 +7,18 @@
 #include <string.h>
 #include <math.h>
 
-//define some flags
+//define some flags for functions
 #define NULL_F	0
 #define COS_F	1
 #define SIN_F	2
 #define TAN_F	3
 #define LOG_F	4
 #define LOG10_F	5
+
+//define flags for missionDone varialbe
+#define RESET	0
+#define DONE	1
+#define UPDATE	2
 
 //define operation flags
 #define MUL	201
@@ -42,6 +47,8 @@ void functions(int f,int l);//check the built-in function as log and trig.
 							//this function should be developed later.
 void power(int f,int l);//solve the power int the expression.
 void Mul_Div_Mod(int f, int l);// solve the multiplication and division and the modules.
+void Add_Sub(int f, int l);//solve the addition and subtriction.
+void Sign_Dot(int f,int l);//to show if we have to sign beside each other solve it.
 
 int checkSimple(int f, int l);//check if we have unique simple number in parameter.
 int ifNum(char n);//check if this character is number or dot.
